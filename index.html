@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RapidAPI Google Search Engine</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+h1 { text-align:center; margin-bottom:20px; }
+.search-box { max-width:600px; margin:auto; display:flex; gap:10px; }
+input { flex:1; padding:14px 16px; font-size:16px; border-radius:25px; border:1px solid #ccc; }
+button { padding:14px 20px; border-radius:25px; border:none; background:#1a73e8; color:white; cursor:pointer; }
+button:hover { background:#155ab6; }
+#results { max-width:900px; margin:30px auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:20px; }
+.result-card { background:#fff; padding:15px; border-radius:8px; display:flex; flex-direction:column; }
+.result-card img { width:100%; height:auto; border-radius:6px; margin-bottom:10px; }
+.result-card a { font-weight:bold; color:#1a73e8; text-decoration:none; margin-bottom:5px; }
+.result-card p { color:#444; font-size:14px; margin:0; }
+.related { max-width:600px; margin:20px auto; font-size:14px; }
+.related span { background:#ddd; border-radius:5px; padding:5px 8px; margin:3px; display:inline-block; }
+</style>
+</head>
+<body>
+
+<h1>Google Search Engine</h1>
+
+<div class="search-box">
+  <input id="q" placeholder="Search…">
+  <button onclick="search()">Search</button>
+</div>
+
+<div id="results"></div>
+<div id="related" class="related"></div>
+
+<script>
+async function search() {
+  const query = document.getElementById('q').value.trim();
+  if(!query) return;
+
+  const resultsDiv = document.getElementById('results');
+  const relatedDiv = document.getElementById('related');
+  resultsDiv.innerHTML = "<p>Searching…</p>";
+  relatedDiv.innerHTML = "";
+
+  try {
+    const res = await fetch(`/search?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    resultsDiv.innerHTML = "";
+
+    // Organic Results
+    if(data.organic_results && data.organic_results.length>0){
+      data.organic_results.forEach(item=>{
+        const div = document.createElement('div');
+        div.className = "result-card";
+        div.innerHTML = `
+          <a href="${item.link}" target="_blank">${item.title}</a>
+          <p>${item.snippet || ''}</p>
+        `;
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    // Image Results
+    if(data.images_results && data.images_results.length>0){
+      data.images_results.forEach(item=>{
+        const div = document.createElement('div');
+        div.className = "result-card";
+        div.innerHTML = `
+          <img src="${item.image}" alt="${item.title}">
+          <a href="${item.link}" target="_blank">${item.title}</a>
+          <p>${item.source || ''}</p>
+        `;
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    // Related Keywords
+    if(data.related_keywords && data.related_keywords.length>0){
+      data.related_keywords.forEach(word=>{
+        const span = document.createElement('span');
+        span.textContent = word;
+        relatedDiv.appendChild(span);
+      });
+    }
+
+    if(resultsDiv.childElementCount===0){
+      resultsDiv.innerHTML = "<p>No results found.</p>";
+    }
+
+  } catch(err){
+    console.error(err);
+    resultsDiv.innerHTML = "<p>Error fetching results.</p>";
+  }
+}
+</script>
+
+</body>
+</html>
